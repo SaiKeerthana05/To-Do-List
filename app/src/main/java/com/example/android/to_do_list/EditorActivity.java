@@ -1,7 +1,12 @@
 package com.example.android.to_do_list;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.LoaderManager;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.DialogInterface;
@@ -11,47 +16,74 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.Spinner;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
+import com.example.android.to_do_list.data.AlarmReceiver;
 import com.example.android.to_do_list.data.TaskContract.TaskEntry;
-import com.example.android.to_do_list.R;
+
+import java.util.Calendar;
+
 
 /**
  * Allows user to create a new task or edit an existing one.
  */
 public class EditorActivity extends AppCompatActivity implements
-        LoaderManager.LoaderCallbacks<Cursor> {
+        LoaderManager.LoaderCallbacks<Cursor>, DatePickerDialog.OnDateSetListener, TimePickerDialog.OnTimeSetListener {
 
-    /** Identifier for the task data loader */
     private static final int EXISTING_TASK_LOADER = 0;
+    private static final int RQS_1 = 1;
 
-    /** Content URI for the existing task (null if it's a new task) */
     private Uri mCurrentTaskUri;
 
-    /** EditText field to enter the task's name */
     private EditText mNameEditText;
 
-    /** EditText field to enter the task's description */
     private EditText mDescriptionEditText;
 
+    private RadioGroup mpriorityGroup;
 
-    /** Boolean flag that keeps track of whether the task has been edited (true) or not (false) */
     private boolean mTaskHasChanged = false;
 
-    /**
-     * OnTouchListener that listens for any user touches on a View, implying that they are modifying
-     * the view, and we change the mTaskHasChanged boolean to true.
-     */
+    private TextView mDateText;
+
+    private TextView mTimeText;
+
+    private NotificationManagerCompat notificationManager;
+
+    public  Calendar mCalendar = Calendar.getInstance();
+
+    private Button mSetAlarm;
+
+    private Button mCancelAlarm;
+
+    private CheckBox mCompleted;
+
+    static Calendar now = Calendar.getInstance();
+    public static int mYear = now.get(Calendar.YEAR);
+    public static int mMonth = now.get(Calendar.MONTH);
+    public static int mDay  = now.get(Calendar.DAY_OF_MONTH);
+
+    public static int mHour = now.get(Calendar.HOUR_OF_DAY);
+    public static int mMinute = now.get(Calendar.MINUTE);
+
+    final
+
     private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -60,43 +92,90 @@ public class EditorActivity extends AppCompatActivity implements
         }
     };
 
+    private RadioGroup.OnCheckedChangeListener mChangeListener = new RadioGroup.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(RadioGroup radioGroup, int i) {
+            mTaskHasChanged = true;
+        }
+    };
+
+    private CompoundButton.OnCheckedChangeListener mCheckBoxListener = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+            mTaskHasChanged = true;
+        }
+    };
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_editor);
 
-        // Examine the intent that was used to launch this activity,
-        // in order to figure out if we're creating a new task or editing an existing one.
+        notificationManager = NotificationManagerCompat.from(this);
+
         Intent intent = getIntent();
         mCurrentTaskUri = intent.getData();
 
-        // If the intent DOES NOT contain a task content URI, then we know that we are
-        // creating a new task.
         if (mCurrentTaskUri == null) {
-            // This is a new pet, so change the app bar to say "Add a Pet"
             setTitle(getString(R.string.editor_activity_title_new_task));
 
-            // Invalidate the options menu, so the "Delete" menu option can be hidden.
-            // (It doesn't make sense to delete a task that hasn't been created yet.)
             invalidateOptionsMenu();
         } else {
-            // Otherwise this is an existing task, so change app bar to say "Edit task"
             setTitle(getString(R.string.editor_activity_title_edit_task));
-
-            // Initialize a loader to read the task data from the database
-            // and display the current values in the editor
             getLoaderManager().initLoader(EXISTING_TASK_LOADER, null, this);
         }
 
-        // Find all relevant views that we will need to read user input from
         mNameEditText = (EditText) findViewById(R.id.edit_task_name);
         mDescriptionEditText = (EditText) findViewById(R.id.edit_task_description);
+        mpriorityGroup = (RadioGroup) findViewById(R.id.priority);
+        mCompleted = (CheckBox) findViewById(R.id.completedCheckbox);
 
-        // Setup OnTouchListeners on all the input fields, so we can determine if the user
-        // has touched or modified them. This will let us know if there are unsaved changes
-        // or not, if the user tries to leave the editor without saving.
         mNameEditText.setOnTouchListener(mTouchListener);
         mDescriptionEditText.setOnTouchListener(mTouchListener);
+        mpriorityGroup.setOnCheckedChangeListener(mChangeListener);
+        mCompleted.setOnCheckedChangeListener(mCheckBoxListener);
+
+        mDateText= (TextView) findViewById(R.id.edit_task_due_date);
+        mDateText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showDatePicker();
+            }
+        });
+
+        mTimeText = (TextView) findViewById(R.id.edit_task_due_time);
+        mTimeText.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                showTimePicker();
+            }
+        });
+
+        mSetAlarm = (Button) findViewById(R.id.setAlarm);
+        mSetAlarm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Calendar current = Calendar.getInstance();
+                Calendar cal = Calendar.getInstance();
+                cal.set(mYear,mMonth,mDay,mHour,mMinute);
+                if(cal.compareTo(current)<=0) {
+                    Toast.makeText(view.getContext(),"Invalid Date & Time"+" "+cal.get(Calendar.DAY_OF_MONTH)+" "+current.get(Calendar.DAY_OF_MONTH),Toast.LENGTH_LONG).show();
+                }
+                else{
+                     setAlarm(cal);
+                }
+            }
+        });
+
+        mCancelAlarm = (Button) findViewById(R.id.cancelAlarm);
+        mCancelAlarm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                cancelAlarm();
+            }
+        });
+
     }
 
 
@@ -104,62 +183,57 @@ public class EditorActivity extends AppCompatActivity implements
      * Get user input from editor and save pet into database.
      */
     private void saveTask() {
-        // Read from input fields
-        // Use trim to eliminate leading or trailing white space
+
         String nameString = mNameEditText.getText().toString().trim();
         String descriptionString = mDescriptionEditText.getText().toString().trim();
+        String priorityString;
+        String dateString = getString(R.string.hint_task_due_date);
+        String timeString = mTimeText.getText().toString();
+        int checked = (mCompleted.isChecked())?1:0;
 
-        // Check if this is supposed to be a new task
-        // and check if all the fields in the editor are blank
+        int id = mpriorityGroup.getCheckedRadioButtonId();
+        RadioButton priorityButton = (RadioButton) findViewById(id);
+        priorityString = priorityButton.getText().toString();
+
+        String date = mDateText.getText().toString();
+        if(!date.equals(getString(R.string.hint_task_due_date))) {dateString = date.substring(6) + "/";
+        dateString += date.substring(3,5) + "/" + date.substring(0,2);}
+
         if (mCurrentTaskUri == null &&
-                TextUtils.isEmpty(nameString) && TextUtils.isEmpty(descriptionString)){
-            // Since no fields were modified, we can return early without creating a new task.
-            // No need to create ContentValues and no need to do any ContentProvider operations.
+                TextUtils.isEmpty(nameString)){
+            Toast.makeText(this,"Task not mentioned", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Create a ContentValues object where column names are the keys,
-        // and task attributes from the editor are the values.
         ContentValues values = new ContentValues();
         values.put(TaskEntry.COLUMN_TASK_NAME, nameString);
-        // If the description is not provided by the user, don't try to parse the string into an
-        // String value. Use "Nothing provided!" by default.
+
         String description = "Nothing provided!";
         if (!TextUtils.isEmpty(descriptionString)) {
             description = descriptionString;
         }
+
         values.put(TaskEntry.COLUMN_TASK_DESCRIPTION, description);
+        values.put(TaskEntry.COLUMN_PRIORITY, priorityString);
+        values.put(TaskEntry.COLUMN_DATE,dateString);
+        values.put(TaskEntry.COLUMN_TIME,timeString);
+        values.put(TaskEntry.COLUMN_COMPLETED,checked);
 
-        // Determine if this is a new or existing task by checking if mCurrentTaskUri is null or not
         if (mCurrentTaskUri == null) {
-            // This is a NEW task, so insert a new task into the provider,
-            // returning the content URI for the new task.
             Uri newUri = getContentResolver().insert(TaskEntry.CONTENT_URI, values);
-
-            // Show a toast message depending on whether or not the insertion was successful.
             if (newUri == null) {
-                // If the new content URI is null, then there was an error with insertion.
                 Toast.makeText(this, getString(R.string.editor_insert_task_failed),
                         Toast.LENGTH_SHORT).show();
             } else {
-                // Otherwise, the insertion was successful and we can display a toast.
                 Toast.makeText(this, getString(R.string.editor_insert_task_successful),
                         Toast.LENGTH_SHORT).show();
             }
         } else {
-            // Otherwise this is an EXISTING task, so update the task with content URI: mCurrentTaskUri
-            // and pass in the new ContentValues. Pass in null for the selection and selection args
-            // because mCurrentTaskUri will already identify the correct row in the database that
-            // we want to modify.
             int rowsAffected = getContentResolver().update(mCurrentTaskUri, values, null, null);
-
-            // Show a toast message depending on whether or not the update was successful.
             if (rowsAffected == 0) {
-                // If no rows were affected, then there was an error with the update.
                 Toast.makeText(this, getString(R.string.editor_update_task_failed),
                         Toast.LENGTH_SHORT).show();
             } else {
-                // Otherwise, the update was successful and we can display a toast.
                 Toast.makeText(this, getString(R.string.editor_update_task_successful),
                         Toast.LENGTH_SHORT).show();
             }
@@ -168,8 +242,6 @@ public class EditorActivity extends AppCompatActivity implements
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu options from the res/menu/menu_editor.xml file.
-        // This adds menu items to the app bar.
         getMenuInflater().inflate(R.menu.menu_editor, menu);
         return true;
     }
@@ -181,7 +253,6 @@ public class EditorActivity extends AppCompatActivity implements
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-        // If this is a new task, hide the "Delete" menu item.
         if (mCurrentTaskUri == null) {
             MenuItem menuItem = menu.findItem(R.id.action_delete);
             menuItem.setVisible(false);
@@ -191,42 +262,28 @@ public class EditorActivity extends AppCompatActivity implements
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // User clicked on a menu option in the app bar overflow menu
         switch (item.getItemId()) {
-            // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // Save task to database
                 saveTask();
-                // Exit activity
                 finish();
                 return true;
-            // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
-                // Pop up confirmation dialog for deletion
                 showDeleteConfirmationDialog();
                 return true;
-            // Respond to a click on the "Up" arrow button in the app bar
             case android.R.id.home:
-                // If the task hasn't changed, continue with navigating up to parent activity
-                // which is the {@link TaskActivity}.
                 if (!mTaskHasChanged) {
                     NavUtils.navigateUpFromSameTask(EditorActivity.this);
                     return true;
                 }
 
-                // Otherwise if there are unsaved changes, setup a dialog to warn the user.
-                // Create a click listener to handle the user confirming that
-                // changes should be discarded.
                 DialogInterface.OnClickListener discardButtonClickListener =
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
-                                // User clicked "Discard" button, navigate to parent activity.
                                 NavUtils.navigateUpFromSameTask(EditorActivity.this);
                             }
                         };
 
-                // Show a dialog that notifies the user they have unsaved changes
                 showUnsavedChangesDialog(discardButtonClickListener);
                 return true;
         }
@@ -238,130 +295,133 @@ public class EditorActivity extends AppCompatActivity implements
      */
     @Override
     public void onBackPressed() {
-        // If the pet hasn't changed, continue with handling back button press
         if (!mTaskHasChanged) {
             super.onBackPressed();
             return;
         }
 
-        // Otherwise if there are unsaved changes, setup a dialog to warn the user.
-        // Create a click listener to handle the user confirming that changes should be discarded.
         DialogInterface.OnClickListener discardButtonClickListener =
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        // User clicked "Discard" button, close the current activity.
                         finish();
                     }
                 };
 
-        // Show dialog that there are unsaved changes
         showUnsavedChangesDialog(discardButtonClickListener);
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        // Since the editor shows all task attributes, define a projection that contains
-        // all columns from the pet table
         String[] projection = {
                 TaskEntry._ID,
                 TaskEntry.COLUMN_TASK_NAME,
-                TaskEntry.COLUMN_TASK_DESCRIPTION};
+                TaskEntry.COLUMN_TASK_DESCRIPTION,
+                TaskEntry.COLUMN_PRIORITY,
+                TaskEntry.COLUMN_DATE,
+                TaskEntry.COLUMN_TIME,
+                TaskEntry.COLUMN_COMPLETED};
 
-        // This loader will execute the ContentProvider's query method on a background thread
-        return new CursorLoader(this,   // Parent activity context
-                mCurrentTaskUri,         // Query the content URI for the current pet
-                projection,             // Columns to include in the resulting Cursor
-                null,                   // No selection clause
-                null,                   // No selection arguments
-                null);                  // Default sort order
+        return new CursorLoader(this,
+                mCurrentTaskUri,
+                projection,
+                null,
+                null,
+                null);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
-        // Bail early if the cursor is null or there is less than 1 row in the cursor
+
         if (cursor == null || cursor.getCount() < 1) {
             return;
         }
 
-        // Proceed with moving to the first row of the cursor and reading data from it
-        // (This should be the only row in the cursor)
         if (cursor.moveToFirst()) {
-            // Find the columns of pet attributes that we're interested in
+
             int nameColumnIndex = cursor.getColumnIndex(TaskEntry.COLUMN_TASK_NAME);
             int descriptionColumnIndex = cursor.getColumnIndex(TaskEntry.COLUMN_TASK_DESCRIPTION);
+            int priorityColumnIndex = cursor.getColumnIndex(TaskEntry.COLUMN_PRIORITY);
+            int dateColumnIndex = cursor.getColumnIndex(TaskEntry.COLUMN_DATE);
+            int timeColumnIndex = cursor.getColumnIndex(TaskEntry.COLUMN_TIME);
+            int completedColumnIndex = cursor.getColumnIndex(TaskEntry.COLUMN_COMPLETED);
 
-            // Extract out the value from the Cursor for the given column index
             String name = cursor.getString(nameColumnIndex);
             String description = cursor.getString(descriptionColumnIndex);
+            String priority = cursor.getString(priorityColumnIndex);
+            String date = cursor.getString(dateColumnIndex);
+            String time = cursor.getString(timeColumnIndex);
+            int completedStatus = cursor.getInt(completedColumnIndex);
 
-            // Update the views on the screen with the values from the database
             mNameEditText.setText(name);
             mDescriptionEditText.setText(description);
+            if(description.equals("Nothing provided!")) {}
+            else mDescriptionEditText.setTextColor(this.getResources().getColor(R.color.black));
+            if(priority.equals("High")) mpriorityGroup.check(R.id.high);
+            else if(priority.equals("Medium"))  mpriorityGroup.check(R.id.medium);
+            else if(priority.equals("Low"))  mpriorityGroup.check(R.id.low);
+            else  mpriorityGroup.check(R.id.None);
+
+            String dateString = getString(R.string.hint_task_due_date);
+            if(!date.equals(getString(R.string.hint_task_due_date))) {
+                dateString = date.substring(8) + "/" + date.substring(5,7) + "/" + date.substring(0,4);
+            }
+            mDateText.setText(dateString);
+            if(date.equals(R.string.hint_task_due_date)){}
+            else mDateText.setTextColor(this.getResources().getColor(R.color.black));
+
+            mTimeText.setText(time);
+            if(time.equals(R.string.hint_task_due_time)){}
+            else mTimeText.setTextColor(this.getResources().getColor(R.color.black));
+
+            if(completedStatus==0) mCompleted.setChecked(false);
+            else mCompleted.setChecked(true);
         }
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-        // If the loader is invalidated, clear out all the data from the input fields.
         mNameEditText.setText("");
         mDescriptionEditText.setText("");
+        mpriorityGroup.check(R.id.None);
+        mDateText.setText(R.string.hint_task_due_date);
+        mTimeText.setText(R.string.hint_task_due_time);
+        mCompleted.setChecked(false);
     }
 
-    /**
-     * Show a dialog that warns the user there are unsaved changes that will be lost
-     * if they continue leaving the editor.
-     *
-     * @param discardButtonClickListener is the click listener for what to do when
-     *                                   the user confirms they want to discard their changes
-     */
     private void showUnsavedChangesDialog(
             DialogInterface.OnClickListener discardButtonClickListener) {
-        // Create an AlertDialog.Builder and set the message, and click listeners
-        // for the postivie and negative buttons on the dialog.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.unsaved_changes_dialog_msg);
         builder.setPositiveButton(R.string.discard, discardButtonClickListener);
         builder.setNegativeButton(R.string.keep_editing, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                // User clicked the "Keep editing" button, so dismiss the dialog
-                // and continue editing the pet.
                 if (dialog != null) {
                     dialog.dismiss();
                 }
             }
         });
 
-        // Create and show the AlertDialog
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
     }
 
-    /**
-     * Prompt the user to confirm that they want to delete this task.
-     */
     private void showDeleteConfirmationDialog() {
-        // Create an AlertDialog.Builder and set the message, and click listeners
-        // for the postive and negative buttons on the dialog.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.delete_dialog_msg);
         builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                // User clicked the "Delete" button, so delete the task.
                 deleteTask();
             }
         });
         builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                // User clicked the "Cancel" button, so dismiss the dialog
-                // and continue editing the task.
                 if (dialog != null) {
                     dialog.dismiss();
                 }
             }
         });
 
-        // Create and show the AlertDialog
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
     }
@@ -370,26 +430,72 @@ public class EditorActivity extends AppCompatActivity implements
      * Perform the deletion of the task in the database.
      */
     private void deleteTask() {
-        // Only perform the delete if this is an existing task.
         if (mCurrentTaskUri != null) {
-            // Call the ContentResolver to delete the task at the given content URI.
-            // Pass in null for the selection and selection args because the mCurrentTaskUri
-            // content URI already identifies the task that we want.
             int rowsDeleted = getContentResolver().delete(mCurrentTaskUri, null, null);
-
-            // Show a toast message depending on whether or not the delete was successful.
             if (rowsDeleted == 0) {
-                // If no rows were deleted, then there was an error with the delete.
                 Toast.makeText(this, getString(R.string.editor_delete_task_failed),
                         Toast.LENGTH_SHORT).show();
             } else {
-                // Otherwise, the delete was successful and we can display a toast.
                 Toast.makeText(this, getString(R.string.editor_delete_task_successful),
                         Toast.LENGTH_SHORT).show();
             }
         }
-
-        // Close the activity
         finish();
+    }
+
+    private void showDatePicker(){
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this,this,mCalendar.get(Calendar.YEAR),mCalendar.get(Calendar.MONTH),mCalendar.get(Calendar.DAY_OF_MONTH));
+        datePickerDialog.show();
+    }
+
+    @Override
+    public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+        mYear = year;
+        mMonth = month;
+        mDay = day;
+        month += 1;
+        String myFormat;
+        if(day<=9) myFormat = "0" + day + "/";
+        else myFormat = day + "/";
+        if(month<=9) myFormat += "0" + month + "/";
+        else myFormat += month + "/";
+        myFormat += year;
+        mDateText.setText(myFormat);
+        mDateText.setTextColor(ContextCompat.getColor(this,R.color.black));
+    }
+
+    private void showTimePicker() {
+        TimePickerDialog timePickerDialog = new TimePickerDialog(this, this,mCalendar.get(Calendar.HOUR_OF_DAY),mCalendar.get(Calendar.MINUTE),false);
+        timePickerDialog.show();
+    }
+
+    @Override
+    public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+            mHour = hour;
+            mMinute = minute;
+            String myFormat;
+            if(hour<=9) myFormat = "0" + hour + ":";
+            else myFormat = hour+":";
+            if(minute<=9) myFormat = myFormat+"0";
+            myFormat = myFormat+minute;
+            mTimeText.setText(myFormat);
+            mTimeText.setTextColor(ContextCompat.getColor(this,R.color.black));
+    }
+
+    private void setAlarm(Calendar cal) {
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this,RQS_1,intent,0);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP,cal.getTimeInMillis(),pendingIntent);
+        Toast.makeText(this,"Alarm Set",Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelAlarm() {
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this,RQS_1,intent,0);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
+        mDateText.setText(getString(R.string.hint_task_due_date));
+        mTimeText.setText(getString(R.string.hint_task_due_time));
     }
 }

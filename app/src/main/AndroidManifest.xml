@@ -18,6 +18,7 @@
         </activity>
         <activity
             android:name=".EditorActivity"
+            android:theme="@style/EditorTheme"
             android:parentActivityName=".TaskActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -26,6 +27,9 @@
         <provider
             android:authorities="com.example.android.to_do_list"
             android:name=".data.TaskProvider"
+            android:exported="false"/>
+        <receiver android:name=".data.AlarmReceiver"
+            android:process=":remote"
             android:exported="false"/>
     </application>
 

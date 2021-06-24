@@ -1,71 +1,266 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!-- Layout for the editor -->
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_margin="16dp"
     android:orientation="vertical"
-    android:padding="@dimen/activity_margin"
     tools:context=".EditorActivity">
 
     <!-- Task category -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
         android:orientation="horizontal">
 
         <!-- Label -->
         <TextView
-            android:text="@string/category_task"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:paddingTop="16dp"
-            android:textColor="@android:color/black"
             android:fontFamily="sans-serif-medium"
-            android:textAppearance="?android:textAppearanceSmall"/>
+            android:text="@string/category_task"
+            android:textAppearance="?android:textAppearanceSmall"
+            android:textColor="@android:color/black" />
 
         <!-- Input field -->
         <EditText
-            android:layout_height="wrap_content"
-            android:hint="@string/hint_task_name"
-            android:layout_width="0dp"
-            android:layout_weight="2"
             android:id="@+id/edit_task_name"
-            android:inputType="textCapWords"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
             android:fontFamily="sans-serif-light"
-            android:textAppearance="?android:textAppearanceMedium"/>
+            android:hint="@string/hint_task_name"
+            android:inputType="textCapWords"
+            android:textAppearance="?android:textAppearanceMedium" />
     </LinearLayout>
 
     <!-- Description category -->
+
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <!-- Label -->
+
+        <!-- Input field -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/category_description"
+            android:textAppearance="?android:textAppearanceSmall"
+            android:textColor="@android:color/black" />
+
+        <EditText
+            android:id="@+id/edit_task_description"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:fontFamily="sans-serif-light"
+            android:hint="@string/hint_task_description"
+            android:inputType="textCapSentences"
+            android:textAppearance="?android:textAppearanceMedium"
+            android:textColor="#7C7979" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25dp"
+        android:layout_marginBottom="10dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/prioritize_your_task"
+        android:textAppearance="?android:textAppearanceSmall"
+        android:textColor="@android:color/black" />
+
+    <RadioGroup
+        android:id="@+id/priority"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checkedButton="@id/None"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/high"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/high"
+            android:textStyle="italic" />
+
+        <RadioButton
+            android:id="@+id/medium"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/medium"
+            android:textStyle="italic" />
+
+        <RadioButton
+            android:id="@+id/low"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/low"
+            android:textStyle="italic" />
+
+        <RadioButton
+            android:id="@+id/None"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/none"
+            android:textStyle="italic" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:orientation="horizontal">
+
+        <!-- Label -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/due_date"
+            android:textAppearance="?android:textAppearanceSmall"
+            android:textColor="@android:color/black" />
+
+        <!-- Input field -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/edit_task_due_date"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-light"
+                    android:text="Pick a date"
+                    android:textAppearance="?android:textAppearanceMedium"
+                    android:textColor="#7C7979" />
+
+                <ImageView
+                    android:id="@+id/calender"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_marginRight="5dp"
+                    android:layout_marginBottom="5dp"
+                    android:src="@drawable/outline_event_24" />
+            </RelativeLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#BE7A7979" />
+        </LinearLayout>
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="16dp">
+
+        <!-- Label -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/due_time"
+            android:textAppearance="?android:textAppearanceSmall"
+            android:textColor="@android:color/black" />
+
+        <!-- Input field -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/edit_task_due_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-light"
+                    android:hint="@string/hint_task_due_time"
+                    android:inputType="textCapSentences"
+                    android:textAppearance="?android:textAppearanceMedium" />
+
+                <ImageView
+                    android:id="@+id/timer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_marginRight="5dp"
+                    android:layout_marginBottom="5dp"
+                    android:src="@drawable/outline_schedule_24" />
+            </RelativeLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#BE7A7979" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <!-- Label -->
-        <TextView
-            android:text="@string/category_description"
+        <Button
+            android:id="@+id/setAlarm"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:paddingTop="16dp"
-            android:textColor="@android:color/black"
-            android:fontFamily="sans-serif-medium"
-            android:textAppearance="?android:textAppearanceSmall"/>
+            android:layout_alignParentLeft="true"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="45dp"
+            android:text="SET ALARM" />
 
-        <!-- Input field -->
-        <EditText
+        <Button
+            android:id="@+id/cancelAlarm"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:hint="@string/hint_task_description"
-            android:layout_width="0dp"
-            android:layout_weight="2"
-            android:id="@+id/edit_task_description"
-            android:inputType="textCapSentences"
-            android:fontFamily="sans-serif-light"
-            android:textAppearance="?android:textAppearanceMedium"/>
-    </LinearLayout>
+            android:layout_alignParentRight="true"
+            android:layout_marginTop="10dp"
+            android:layout_marginRight="40dp"
+            android:text="CANCEL ALARM" />
+
+    </RelativeLayout>
+
+    <CheckBox
+        android:id="@+id/completedCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="TASK COMPLETED"
+        android:textStyle="bold" />
+
 
 </LinearLayout>
