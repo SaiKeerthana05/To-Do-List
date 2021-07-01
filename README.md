@@ -3,7 +3,7 @@ To-Do-List is an android application designed to record or list out all the task
 
 Features:
 Adding a new task and editing or deleting an existing task.
-Set priority, due time and due date for the task (Optional).
+Set priority levels, due time and due date for the task (Optional).
 Color badges to indicate the priority of the task.
 Alarm notifications for the tasks.
 By default, the tasks are sorted according to their completion status, due date and due time.
