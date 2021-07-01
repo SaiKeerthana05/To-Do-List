@@ -160,7 +160,7 @@ public class EditorActivity extends AppCompatActivity implements
                 Calendar cal = Calendar.getInstance();
                 cal.set(mYear,mMonth,mDay,mHour,mMinute);
                 if(cal.compareTo(current)<=0) {
-                    Toast.makeText(view.getContext(),"Invalid Date & Time"+" "+cal.get(Calendar.DAY_OF_MONTH)+" "+current.get(Calendar.DAY_OF_MONTH),Toast.LENGTH_LONG).show();
+                    Toast.makeText(view.getContext(),"Invalid Date & Time",Toast.LENGTH_LONG).show();
                 }
                 else{
                      setAlarm(cal);
